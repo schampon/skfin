@@ -10,8 +10,8 @@ from skfin.datasets import load_kf_returns
 from skfin.plot import line
 
 estimator = make_pipeline(StandardScaler(with_mean=False), 
-                      Ridge(), 
-                      MeanVariance())
+                          Ridge(), 
+                          MeanVariance())
 
 returns_data = load_kf_returns(cache_dir='data')
 ret = returns_data['Monthly']['Average_Value_Weighted_Returns'][:'1999']
