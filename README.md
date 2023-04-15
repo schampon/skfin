@@ -3,7 +3,7 @@ Machine learning for portfolio management and trading
 
 .. code:: python
 
-    	from sklearn.pipeline import make_pipeline
+    from sklearn.pipeline import make_pipeline
 	from sklearn.preprocessing import StandardScaler
 	from skfin import Ridge, MeanVariance, Backtester
 	from skfin.datasets import load_kf_returns
@@ -20,10 +20,9 @@ Machine learning for portfolio management and trading
 	transform_y = lambda x: x.shift(-1).values
 	features = transform_X(ret)
 	target = transform_y(ret)
-
-	estimator = make_pipeline(StandardScaler(with_mean=False),
-				  Ridge(), 
-                          	  MeanVariance())
-
 	bt = Backtester(estimator, ret).train(features, target)
 	line(bt.pnl_, cumsum=True, title='Ridge')
+
+```python
+
+```
