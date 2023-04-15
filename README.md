@@ -1,8 +1,8 @@
+<!-- #region -->
 # skfin
 Machine learning for portfolio management and trading
 
-.. code:: python
-
+```python 
     from sklearn.pipeline import make_pipeline
 	from sklearn.preprocessing import StandardScaler
 	from skfin import Ridge, MeanVariance, Backtester
@@ -22,6 +22,8 @@ Machine learning for portfolio management and trading
 	target = transform_y(ret)
 	bt = Backtester(estimator, ret).train(features, target)
 	line(bt.pnl_, cumsum=True, title='Ridge')
+```
+<!-- #endregion -->
 
 ```python
 
