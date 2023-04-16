@@ -8,6 +8,7 @@ This repo contains a set of python notebooks that cover topics related to machin
 
 <div align="left"><img src="./nbs/images/book_overview2.png" width="80%"/></div>
 
+The concatenation of all notebooks as a single pdf file can be found [here](./book/skfin.pdf).
 
 ## Example 
 
