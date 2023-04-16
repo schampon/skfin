@@ -4,7 +4,7 @@ Machine learning for portfolio management and trading with scikit-learn
 
 ## Motivation
 
-This repo contains python notebooks that covers topics related to machine-learning for portfolio management as illustrated by the figure below.
+This repo contains a set of python notebooks that cover topics related to machine-learning for portfolio management as illustrated by the figure below.
 
 <div align="left"><img src="./nbs/images/book_overview2.png" width="80%"/></div>
 
