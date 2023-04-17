@@ -1,6 +1,6 @@
-from sklearn.neural_network import MLPRegressor
-from sklearn.multioutput import MultiOutputRegressor
 from sklearn.linear_model import LinearRegression, Ridge, RidgeCV
+from sklearn.multioutput import MultiOutputRegressor
+from sklearn.neural_network import MLPRegressor
 
 
 class LinearRegression(LinearRegression):

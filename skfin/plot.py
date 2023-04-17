@@ -1,8 +1,8 @@
-from skfin.metrics import sharpe_ratio
-from matplotlib import pyplot as plt
-import pandas as pd
 import numpy as np
+import pandas as pd
+from matplotlib import pyplot as plt
 
+from skfin.metrics import sharpe_ratio
 
 plt.style.use("seaborn-whitegrid")
 
@@ -32,8 +32,7 @@ def line(
     if cumsum & (legend_sharpe_ratio is None):
         legend_sharpe_ratio = True
     if legend_sharpe_ratio:
-        df.columns = [
-            f"{c}: sr={sharpe_ratio(df[c]): 3.2f}" for c in df.columns]
+        df.columns = [f"{c}: sr={sharpe_ratio(df[c]): 3.2f}" for c in df.columns]
     if cumsum:
         df = df.cumsum()
     if sort:

@@ -1,10 +1,9 @@
-from sklearn.utils.metaestimators import _safe_split
-from sklearn.model_selection import TimeSeriesSplit
-from sklearn.base import clone
-from joblib import Parallel, delayed
-import pandas as pd
 import numpy as np
-
+import pandas as pd
+from joblib import Parallel, delayed
+from sklearn.base import clone
+from sklearn.model_selection import TimeSeriesSplit
+from sklearn.utils.metaestimators import _safe_split
 
 
 class Backtester:
@@ -17,7 +16,6 @@ class Backtester:
         start_date="1945-01-01",
         end_date=None,
     ):
-
         self.start_date = start_date
         self.end_date = end_date
         self.estimator = estimator
@@ -34,16 +32,12 @@ class Backtester:
         )
         self.estimators_ = estimators
         self.h_ = pred
-        if isinstance(pred, pd.DataFrame): 
+        if isinstance(pred, pd.DataFrame):
             self.pnl_ = (
-                pred.shift(1).mul(self.ret).sum(axis=1)[
-                    self.start_date: self.end_date]
+                pred.shift(1).mul(self.ret).sum(axis=1)[self.start_date : self.end_date]
             )
         elif isinstance(pred, pd.Series):
-            self.pnl_ = (
-                pred.shift(1).mul(self.ret)[
-                    self.start_date: self.end_date]
-            )
+            self.pnl_ = pred.shift(1).mul(self.ret)[self.start_date : self.end_date]
         return self
 
 
@@ -68,8 +62,7 @@ def fit_predict(
     pre_dispatch="2*n_jobs",
     n_jobs=1,
 ):
-    parallel = Parallel(n_jobs=n_jobs, verbose=verbose,
-                        pre_dispatch=pre_dispatch)
+    parallel = Parallel(n_jobs=n_jobs, verbose=verbose, pre_dispatch=pre_dispatch)
     res = parallel(
         delayed(_fit_predict)(
             clone(estimator), features, target, train, test, return_estimator
@@ -82,13 +75,13 @@ def fit_predict(
         pred = res
 
     idx = ret.index[np.concatenate([test for _, test in cv.split(ret)])]
-    if isinstance(ret, pd.DataFrame): 
+    if isinstance(ret, pd.DataFrame):
         cols = ret.columns
         df = pd.DataFrame(np.concatenate(pred), index=idx, columns=cols)
-    elif isinstance(ret, pd.Series): 
+    elif isinstance(ret, pd.Series):
         df = pd.Series(np.concatenate(pred), index=idx)
-    else: 
-        df = None 
+    else:
+        df = None
 
     if return_estimator:
         return df, estimators

@@ -1,8 +1,9 @@
+import numpy as np
+import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.linear_model import LinearRegression
+
 from skfin.metrics import sharpe_ratio
-import pandas as pd
-import numpy as np
 
 
 def compute_batch_holdings(pred, V, A=None, past_h=None, constant_risk=False):
@@ -39,7 +40,6 @@ def compute_batch_holdings(pred, V, A=None, past_h=None, constant_risk=False):
 
 class MeanVariance(BaseEstimator):
     def __init__(self, transform_V=None, A=None, constant_risk=True):
-
         if transform_V is None:
             self.transform_V = lambda x: np.cov(x.T)
         else:
@@ -56,28 +56,27 @@ class MeanVariance(BaseEstimator):
             A = np.ones(N)
         else:
             A = self.A
-        h = compute_batch_holdings(
-            X, self.V_, A, constant_risk=self.constant_risk)
+        h = compute_batch_holdings(X, self.V_, A, constant_risk=self.constant_risk)
         return h
 
     def score(self, X, y):
         return sharpe_ratio(np.sum(X * y, axis=1))
 
 
-class Mbj(TransformerMixin): 
-    def __init__(self, positive=False): 
-        self.positive=positive 
-        
-    def fit(self, X, y=None): 
+class Mbj(TransformerMixin):
+    def __init__(self, positive=False):
+        self.positive = positive
+
+    def fit(self, X, y=None):
         m = LinearRegression(fit_intercept=False, positive=self.positive)
-        m.fit(X, y = np.ones(len(X)))
+        m.fit(X, y=np.ones(len(X)))
         self.coef_ = m.coef_ / np.sqrt(np.sum(m.coef_**2))
         return self
 
-    def transform(self, X): 
+    def transform(self, X):
         return X.dot(self.coef_)
-    
-    
+
+
 class TimingMeanVariance(BaseEstimator):
     def __init__(self, transform_V=None, a_min=None, a_max=None):
         if transform_V is None:
@@ -85,14 +84,16 @@ class TimingMeanVariance(BaseEstimator):
         else:
             self.transform_V = transform_V
         self.a_min = a_min
-        self.a_max = a_max 
+        self.a_max = a_max
 
     def fit(self, X, y=None):
         self.V_ = self.transform_V(y)
 
     def predict(self, X):
-        if (self.a_min is None)&(self.a_max is None): 
-            h = X/self.V_
-        else: 
-            h = np.clip(X/np.sqrt(self.V_), a_min=self.a_min, a_max=self.a_max)/np.sqrt(self.V_)
+        if (self.a_min is None) & (self.a_max is None):
+            h = X / self.V_
+        else:
+            h = np.clip(
+                X / np.sqrt(self.V_), a_min=self.a_min, a_max=self.a_max
+            ) / np.sqrt(self.V_)
         return h
