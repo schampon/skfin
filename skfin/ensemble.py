@@ -1,38 +1,36 @@
 import numpy as np
 import pandas as pd
+from dataclasses import dataclass
+
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import TimeSeriesSplit
+from sklearn.base import BaseEstimator, TransformerMixin
 
 from skfin.mv_estimators import Mbj
 
-
+@dataclass         
 class StackingBacktester:
-    def __init__(
-        self,
-        estimators,
-        ret,
-        max_train_size=36,
-        test_size=1,
-        start_date="1945-01-01",
-        end_date=None,
-        window=60,
-        min_periods=60,
-        final_estimator=Mbj(),
-    ):
-        self.start_date = start_date
-        self.end_date = end_date
-        self.estimators = estimators
-        self.ret = ret[: self.end_date]
+    estimators: dict
+    ret: pd.DataFrame
+    max_train_size: int =36
+    test_size: int = 1
+    start_date: str = "1945-01-01"
+    end_date: str = None
+    window: int =60
+    min_periods: int =60
+    final_estimator: TransformerMixin=Mbj()
+
+    def __post_init__(self):
+        self.ret = self.ret[: self.end_date]
         self.cv = TimeSeriesSplit(
-            max_train_size=max_train_size,
-            test_size=test_size,
-            n_splits=1 + len(ret.loc[start_date:end_date]) // test_size,
+            max_train_size=self.max_train_size,
+            test_size=self.test_size,
+            n_splits=1 + len(self.ret.loc[self.start_date:self.end_date]) // self.test_size,
         )
-        self.window = window
-        self.min_periods = min_periods
-        self.final_estimator = final_estimator
+
 
     def train(self, features, target):
+        N_estimators = len(self.estimators)
         cols = self.ret.columns
         idx = self.ret.index[
             np.concatenate([test for _, test in self.cv.split(self.ret)])
@@ -50,7 +48,7 @@ class StackingBacktester:
                 coef_ = self.final_estimator.fit(pnl_window).coef_
                 _coef += [coef_]
             else:
-                _coef += [np.zeros(3)]
+                _coef += [np.zeros(N_estimators)]
             for k, m in self.estimators.items():
                 m.fit(features[train], target[train])
                 h_[k] = m.predict(features[test])

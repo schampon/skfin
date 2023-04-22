@@ -21,6 +21,7 @@ def line(
     yscale=None,
     start_date=None,
 ):
+    df = df.copy()
     if loc == "best":
         bbox_to_anchor = None
     if isinstance(df, dict):

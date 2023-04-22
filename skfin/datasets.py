@@ -407,7 +407,7 @@ def load_loughran_mcdonald_dictionary(cache_dir=None, force_reload=False, quiet=
     https://sraf.nd.edu/loughranmcdonald-master-dictionary/
     """
     filename = (
-        cacheclean_directory_path(cache_dir)
+        clean_directory_path(cache_dir)
         / "Loughran-McDonald_MasterDictionary_1993-2021.csv"
     )
     if (filename.exists()) & (~force_reload):
