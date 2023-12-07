@@ -1,5 +1,5 @@
 beautifulsoup4==4.11.1
-ipykernel==6.15.1
+ipykernel==6.6.0
 ipython==8.4.0
 ipywidgets==8.0.4
 lightgbm==3.3.2
@@ -12,7 +12,7 @@ pyarrow==9.0.0
 rapidfuzz==2.13.7
 scikit-learn==1.1.2
 scipy==1.9.0
- sentence_transformers==2.2.2
+sentence_transformers==2.2.2
 statsmodels==0.13.2
 tqdm==4.64.0
 umap-learn==0.5.3
