@@ -1,9 +1,8 @@
 import numpy as np
 import pandas as pd
+from skfin.metrics import sharpe_ratio
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.linear_model import LinearRegression
-
-from skfin.metrics import sharpe_ratio
 
 
 def compute_batch_holdings(pred, V, A=None, past_h=None, constant_risk=False):
@@ -39,7 +38,7 @@ def compute_batch_holdings(pred, V, A=None, past_h=None, constant_risk=False):
 
 
 class MeanVariance(BaseEstimator):
-    def __init__(self, transform_V=None, A=None, constant_risk=True):
+    def __init__(self, transform_V=None, A=1, constant_risk=True):
         if transform_V is None:
             self.transform_V = lambda x: np.cov(x.T)
         else:
@@ -51,7 +50,7 @@ class MeanVariance(BaseEstimator):
         self.V_ = self.transform_V(y)
 
     def predict(self, X):
-        if self.A is None:
+        if self.A==1:
             T, N = X.shape
             A = np.ones(N)
         else:
@@ -64,6 +63,10 @@ class MeanVariance(BaseEstimator):
 
 
 class Mbj(TransformerMixin):
+    """
+    Computing unconstrained mean-variance weights with the Britten-Jones (1999) trick.
+    """
+
     def __init__(self, positive=False):
         self.positive = positive
 

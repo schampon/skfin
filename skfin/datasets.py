@@ -7,7 +7,6 @@ import warnings
 from io import BytesIO
 from zipfile import ZipFile
 
-import gdown
 import numpy as np
 import pandas as pd
 import requests
@@ -17,6 +16,7 @@ from tqdm.auto import tqdm
 warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
 
 from skfin.data_utils import clean_directory_path, load_dict, save_dict
+from skfin.dataset_dates import load_fomc_change_date
 from skfin.dataset_mappings import mapping_10X, symbol_dict
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
@@ -64,7 +64,7 @@ def clean_kf_dataframes(df, multi_df=False):
 
 
 def load_kf_returns(
-    filename="12_Industry_Portfolios", cache_dir=None, force_reload=False
+    filename="12_Industry_Portfolios", cache_dir="data", force_reload=False
 ):
     """
     industry returns from Ken French:
@@ -109,7 +109,7 @@ def load_kf_returns(
     return returns_data
 
 
-def load_buffets_data(cache_dir=None, force_reload=False):
+def load_buffets_data(cache_dir="data", force_reload=False):
     """
     data from Stephen Lihn: site: https://github.com/slihn
     """
@@ -134,7 +134,7 @@ def load_buffets_data(cache_dir=None, force_reload=False):
     return df
 
 
-def load_sklearn_stock_returns(cache_dir=None, force_reload=False):
+def load_sklearn_stock_returns(cache_dir="data", force_reload=False):
     """
     data from scikit-learn
     """
@@ -220,6 +220,7 @@ def bs_cleaner(bs, html_tag_blocked=None):
             "em",
             "body",
             "head",
+            "sup",
         ]
     return [
         sent_cleaner(t)
@@ -292,7 +293,7 @@ def feature_extraction(corpus, sent_filters=None):
 
 
 def load_fomc_statements(
-    add_url=True, cache_dir=None, force_reload=False, progress_bar=True, from_year=1999
+    add_url=True, cache_dir="data", force_reload=False, progress_bar=False, from_year=1999
 ):
     """
     https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm
@@ -321,87 +322,7 @@ def load_fomc_statements(
     return statements
 
 
-def load_fomc_change_date(as_datetime=True):
-    change_up = pd.to_datetime(
-        [
-            "1999-06-30",
-            "1999-08-24",
-            "1999-11-16",
-            "2000-02-02",
-            "2000-03-21",
-            "2000-05-16",
-            "2004-06-30",
-            "2004-08-10",
-            "2004-09-21",
-            "2004-11-10",
-            "2004-12-14",
-            "2005-02-02",
-            "2005-03-22",
-            "2005-05-03",
-            "2005-06-30",
-            "2005-08-09",
-            "2005-09-20",
-            "2005-11-01",
-            "2005-12-13",
-            "2006-01-31",
-            "2006-03-28",
-            "2006-05-10",
-            "2006-06-29",
-            "2015-12-16",
-            "2016-12-14",
-            "2017-03-15",
-            "2017-06-14",
-            "2017-12-13",
-            "2018-03-21",
-            "2018-06-13",
-            "2018-09-26",
-            "2018-12-19",
-            "2022-03-16",
-            "2022-05-04",
-            "2022-06-15",
-            "2022-07-27",
-        ]
-    )
-
-    change_dw = pd.to_datetime(
-        [
-            "2001-01-03",
-            "2001-01-31",
-            "2001-03-20",
-            "2001-04-18",
-            "2001-05-15",
-            "2001-06-27",
-            "2001-08-21",
-            "2001-09-17",
-            "2001-10-02",
-            "2001-11-06",
-            "2001-12-11",
-            "2002-11-06",
-            "2003-06-25",
-            "2007-09-18",
-            "2007-10-31",
-            "2007-12-11",
-            "2008-01-22",
-            "2008-01-30",
-            "2008-03-18",
-            "2008-04-30",
-            "2008-10-08",
-            "2008-10-29",
-            "2008-12-16",
-            "2019-07-31",
-            "2019-09-18",
-            "2019-10-30",
-            "2020-03-03",
-            "2020-03-15",
-        ]
-    )
-    if as_datetime:
-        change_up, change_dw = pd.to_datetime(change_up), pd.to_datetime(change_dw)
-
-    return change_up, change_dw
-
-
-def load_loughran_mcdonald_dictionary(cache_dir=None, force_reload=False, quiet=True):
+def load_loughran_mcdonald_dictionary(cache_dir="data", force_reload=False):
     """
     Software Repository for Accounting and Finance by Bill McDonald
     https://sraf.nd.edu/loughranmcdonald-master-dictionary/
@@ -414,14 +335,13 @@ def load_loughran_mcdonald_dictionary(cache_dir=None, force_reload=False, quiet=
         logger.info(f"logging from cache file: {filename}")
     else:
         logger.info("loading from external source")
-        url = "https://drive.google.com/uc?id=17CmUZM9hGUdGYjCXcjQLyybjTrcjrhik"
-        output = str(filename)
-        gdown.download(url, output, quiet=quiet, fuzzy=True)
-
+        id = "17CmUZM9hGUdGYjCXcjQLyybjTrcjrhik"
+        url = f"https://docs.google.com/uc?export=download&confirm=t&id={id}"        
+        subprocess.run(f"wget -O '{filename}' '{url}'", shell=True, capture_output=True)
     return pd.read_csv(filename)
 
 
-def load_10X_summaries(cache_dir=None, force_reload=False):
+def load_10X_summaries(cache_dir="data", force_reload=False):
     """
     Software Repository for Accounting and Finance by Bill McDonald
     https://sraf.nd.edu/sec-edgar-data/
@@ -434,7 +354,8 @@ def load_10X_summaries(cache_dir=None, force_reload=False):
         logger.info(f"logging from cache directory: {filename}")
     else:
         logger.info("loading from external source")
-        url = "https://docs.google.com/uc?export=download&confirm=t&id=1CUzLRwQSZ4aUTfPB9EkRtZ48gPwbCOHA"
+        id = "1CUzLRwQSZ4aUTfPB9EkRtZ48gPwbCOHA"
+        url = f"https://docs.google.com/uc?export=download&confirm=t&id={id}"
         subprocess.run(f"wget -O '{filename}' '{url}'", shell=True, capture_output=True)
 
     df = pd.read_csv(filename).assign(
@@ -443,15 +364,18 @@ def load_10X_summaries(cache_dir=None, force_reload=False):
     return df
 
 
-def load_ag_features(cache_dir=None, sheet_name="Monthly"):
+def load_ag_features(cache_dir="data", sheet_name="Monthly", force_reload=False):
     """
     load features from Amit Goyal's website:
     https://sites.google.com/view/agoyal145
     """
     filename = clean_directory_path(cache_dir) / "PredictorData2021.xlsx"
-    id = "1OArfD2Wv9IvGoLkJ8JyoXS0YMQLDZfY2"
-    url = f"https://docs.google.com/uc?export=download&confirm=t&id={id}"
-    subprocess.run(f"wget -O '{filename}' '{url}'", shell=True, capture_output=True)
+    if (filename.exists()) & (~force_reload):
+        logger.info(f"logging from cache file: {filename}")
+    else:
+        id = "1OArfD2Wv9IvGoLkJ8JyoXS0YMQLDZfY2"
+        url = f"https://docs.google.com/uc?export=download&confirm=t&id={id}"
+        subprocess.run(f"wget -O '{filename}' '{url}'", shell=True, capture_output=True)
     return (
         pd.read_excel(filename, sheet_name=sheet_name)
         .assign(date=lambda x: pd.to_datetime(x.yyyymm, format="%Y%m"))

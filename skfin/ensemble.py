@@ -1,33 +1,33 @@
-import numpy as np
-import pandas as pd
 from dataclasses import dataclass
 
+import numpy as np
+import pandas as pd
+from skfin.mv_estimators import Mbj
+from sklearn.base import BaseEstimator
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import TimeSeriesSplit
-from sklearn.base import BaseEstimator, TransformerMixin
 
-from skfin.mv_estimators import Mbj
 
-@dataclass         
+@dataclass
 class StackingBacktester:
     estimators: dict
     ret: pd.DataFrame
-    max_train_size: int =36
+    max_train_size: int = 36
     test_size: int = 1
     start_date: str = "1945-01-01"
     end_date: str = None
-    window: int =60
-    min_periods: int =60
-    final_estimator: TransformerMixin=Mbj()
+    window: int = 60
+    min_periods: int = 60
+    final_estimator: BaseEstimator = Mbj()
 
     def __post_init__(self):
         self.ret = self.ret[: self.end_date]
         self.cv = TimeSeriesSplit(
             max_train_size=self.max_train_size,
             test_size=self.test_size,
-            n_splits=1 + len(self.ret.loc[self.start_date:self.end_date]) // self.test_size,
+            n_splits=1
+            + len(self.ret.loc[self.start_date : self.end_date]) // self.test_size,
         )
-
 
     def train(self, features, target):
         N_estimators = len(self.estimators)
@@ -50,8 +50,8 @@ class StackingBacktester:
             else:
                 _coef += [np.zeros(N_estimators)]
             for k, m in self.estimators.items():
-                m.fit(features[train], target[train])
-                h_[k] = m.predict(features[test])
+                m.fit(features.iloc[train], target.iloc[train])
+                h_[k] = m.predict(features.iloc[test])
                 _h[k] += [h_[k]]
                 if i + 1 < len(idx):
                     _pnls[k] += [self.ret.loc[idx[i + 1]].dot(np.squeeze(h_[k]))]

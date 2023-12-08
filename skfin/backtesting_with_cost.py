@@ -113,13 +113,13 @@ class BacktesterWithCost:
         past_h = self.h_init
         for train, test in self.cv.split(self.ret):
             m = clone(self.estimator)
-            m.fit(features[train], target[train])
+            m.fit(features.iloc[train], target.iloc[train])
             if self.vol_liquidity_factor is None:
                 vlf = None
             else:
                 vlf = np.squeeze(self.vol_liquidity_factor.values[test])
             current_h = m.predict(
-                features[test], past_h=past_h, vol_liquidity_factor=vlf
+                features.iloc[test], past_h=past_h, vol_liquidity_factor=vlf
             )
             _h += [current_h]
             past_h = current_h

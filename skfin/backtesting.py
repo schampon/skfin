@@ -1,47 +1,22 @@
+from dataclasses import dataclass
+
 import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
-from sklearn.base import clone
+from skfin.mv_estimators import MeanVariance
+from sklearn.base import BaseEstimator, clone
 from sklearn.model_selection import TimeSeriesSplit
 from sklearn.utils.metaestimators import _safe_split
 
 
-class Backtester:
-    def __init__(
-        self,
-        estimator,
-        ret,
-        max_train_size=36,
-        test_size=1,
-        start_date="1945-01-01",
-        end_date=None,
-    ):
-        self.start_date = start_date
-        self.end_date = end_date
-        self.estimator = estimator
-        self.ret = ret[: self.end_date]
-        self.cv = TimeSeriesSplit(
-            max_train_size=max_train_size,
-            test_size=test_size,
-            n_splits=1 + len(ret.loc[start_date:end_date]) // test_size,
-        )
-
-    def train(self, features, target):
-        pred, estimators = fit_predict(
-            self.estimator, features, target, self.ret, self.cv, return_estimator=True
-        )
-        self.estimators_ = estimators
-        self.h_ = pred
-        if isinstance(pred, pd.DataFrame):
-            self.pnl_ = (
-                pred.shift(1).mul(self.ret).sum(axis=1)[self.start_date : self.end_date]
-            )
-        elif isinstance(pred, pd.Series):
-            self.pnl_ = pred.shift(1).mul(self.ret)[self.start_date : self.end_date]
-        return self
+def compute_pnl(h, ret, pred_lag):
+    pnl = h.shift(pred_lag).mul(ret)
+    if isinstance(h, pd.DataFrame):
+        pnl = pnl.sum(axis=1)
+    return pnl
 
 
-def _fit_predict(estimator, X, y, train, test, return_estimator=False):
+def fit_predict(estimator, X, y, train, test, return_estimator=True):
     X_train, y_train = _safe_split(estimator, X, y, train)
     X_test, _ = _safe_split(estimator, X, y, test, train)
     estimator.fit(X_train, y_train)
@@ -51,39 +26,51 @@ def _fit_predict(estimator, X, y, train, test, return_estimator=False):
         return estimator.predict(X_test)
 
 
-def fit_predict(
-    estimator,
-    features,
-    target,
-    ret,
-    cv,
-    return_estimator=False,
-    verbose=0,
-    pre_dispatch="2*n_jobs",
-    n_jobs=1,
-):
-    parallel = Parallel(n_jobs=n_jobs, verbose=verbose, pre_dispatch=pre_dispatch)
-    res = parallel(
-        delayed(_fit_predict)(
-            clone(estimator), features, target, train, test, return_estimator
+@dataclass
+class Backtester:
+    estimator: BaseEstimator = MeanVariance()
+    max_train_size: int = 36
+    test_size: int = 1
+    pred_lag: int = 1
+    start_date: str = "1945-01-01"
+    end_date: str = None
+    name: str = None
+
+    def compute_holdings(self, X, y, pre_dispatch="2*n_jobs", n_jobs=1):
+        cv = TimeSeriesSplit(
+            max_train_size=self.max_train_size,
+            test_size=self.test_size,
+            n_splits=1 + len(X.loc[self.start_date : self.end_date]) // self.test_size,
         )
-        for train, test in cv.split(ret)
-    )
-    if return_estimator:
-        pred, estimators = zip(*res)
-    else:
-        pred = res
+        parallel = Parallel(n_jobs=n_jobs, pre_dispatch=pre_dispatch)
+        res = parallel(
+            delayed(fit_predict)(
+                clone(self.estimator), X.values, y.values, train, test, True
+            )
+            for train, test in cv.split(X)
+        )
+        y_pred, estimators = zip(*res)
+        idx = X.index[np.concatenate([test for _, test in cv.split(X)])]
+        if isinstance(y, pd.DataFrame):
+            cols = y.columns
+            h = pd.DataFrame(np.concatenate(y_pred), index=idx, columns=cols)
+        elif isinstance(y, pd.Series):
+            h = pd.Series(np.concatenate(y_pred), index=idx)
+        else:
+            h = None
+        self.h_ = h
+        self.estimators_ = estimators
+        self.cv_ = cv
+        return self
 
-    idx = ret.index[np.concatenate([test for _, test in cv.split(ret)])]
-    if isinstance(ret, pd.DataFrame):
-        cols = ret.columns
-        df = pd.DataFrame(np.concatenate(pred), index=idx, columns=cols)
-    elif isinstance(ret, pd.Series):
-        df = pd.Series(np.concatenate(pred), index=idx)
-    else:
-        df = None
+    def compute_pnl(self, ret):
+        pnl = compute_pnl(self.h_, ret, self.pred_lag)
+        self.pnl_ = pnl.loc[self.start_date : self.end_date]
+        if self.name:
+            self.pnl_ = self.pnl_.rename(self.name)
+        return self
 
-    if return_estimator:
-        return df, estimators
-    else:
-        return df
+    def train(self, X, y, ret):
+        self.compute_holdings(X, y)
+        self.compute_pnl(ret)
+        return self.pnl_

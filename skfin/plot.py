@@ -1,10 +1,17 @@
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
-
 from skfin.metrics import sharpe_ratio
 
 plt.style.use("seaborn-whitegrid")
+
+
+def set_axis(ax=None, figsize=(8, 5), title=None, fig=None):
+    if ax is None:
+        fig, ax = plt.subplots(1, 1, figsize=figsize)
+    if title is not None:
+        ax.set_title(title)
+    return fig, ax
 
 
 def line(
@@ -24,7 +31,7 @@ def line(
     df = df.copy()
     if loc == "best":
         bbox_to_anchor = None
-    if isinstance(df, dict):
+    if isinstance(df, dict) | isinstance(df, list):
         df = pd.concat(df, axis=1)
     if isinstance(df, pd.Series):
         df = df.to_frame()
@@ -38,12 +45,10 @@ def line(
         df = df.cumsum()
     if sort:
         df = df.loc[:, lambda x: x.iloc[-1].sort_values(ascending=False).index]
-    if ax is None:
-        fig, ax = plt.subplots(1, 1, figsize=figsize)
+    fig, ax = set_axis(ax=ax, figsize=figsize, title=title)
     ax.plot(df.index, df.values)
     if legend:
         ax.legend(df.columns, loc=loc, bbox_to_anchor=bbox_to_anchor)
-    ax.set_title(title)
     if yscale == "log":
         ax.set_yscale("log")
 
@@ -54,7 +59,7 @@ def bar(
     sort=True,
     figsize=(8, 5),
     ax=None,
-    title="",
+    title=None,
     horizontal=False,
     baseline=None,
     rotation=0,
@@ -69,8 +74,7 @@ def bar(
         err = err.loc[df.index]
     labels = df.index
     x = np.arange(len(labels))
-    if ax is None:
-        fig, ax = plt.subplots(1, 1, figsize=figsize)
+    fig, ax = set_axis(ax=ax, figsize=figsize, title=title)
     if horizontal:
         ax.barh(x, df.values, xerr=err, capsize=5)
         ax.set_yticks(x)
@@ -93,8 +97,9 @@ def bar(
 def heatmap(
     df,
     ax=None,
+    fig=None, 
     figsize=(8, 5),
-    title="",
+    title=None,
     vmin=None,
     vmax=None,
     vcompute=True,
@@ -107,8 +112,7 @@ def heatmap(
     if vcompute:
         vmax = df.abs().max().max()
         vmin = -vmax
-    if ax is None:
-        fig, ax = plt.subplots(1, 1, figsize=figsize)
+    fig, ax = set_axis(ax=ax, figsize=figsize, title=title, fig=fig)
     pos = ax.imshow(
         df.T.values, cmap=cmap, interpolation="nearest", vmax=vmax, vmin=vmin
     )
@@ -116,13 +120,13 @@ def heatmap(
     ax.set_yticks(y)
     ax.set_xticklabels(labels_x, rotation=90)
     ax.set_yticklabels(labels_y)
-    ax.set_title(title)
     ax.grid(True)
     fig.colorbar(pos, ax=ax)
 
 
 def scatter(
     df,
+    ax=None,
     xscale=None,
     yscale=None,
     xlabel=None,
@@ -132,7 +136,7 @@ def scatter(
     figsize=(8, 5),
     title=None,
 ):
-    fig, ax = plt.subplots(1, 1, figsize=figsize)
+    fig, ax = set_axis(ax=ax, figsize=figsize, title=title)
     ax.scatter(df, df.index, facecolors="none", edgecolors="b", s=50)
     if xlabel is not None:
         ax.set_xlabel(xlabel)
@@ -148,4 +152,3 @@ def scatter(
     if xticks is not None:
         ax.set_xticks(xticks)
         ax.set_xticklabels(xticks)
-    ax.set_title(title)
