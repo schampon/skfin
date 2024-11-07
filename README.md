@@ -15,25 +15,24 @@ The concatenation of all notebooks as a single pdf file can be found [here](./bo
 An example to run a simple backtest with learning using a `Ridge` estimator: 
 
 ```python 
-from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import StandardScaler
-from skfin import Ridge, MeanVariance, Backtester
+from skfin import Backtester, MeanVariance, Ridge
 from skfin.datasets import load_kf_returns
 from skfin.plot import line
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
 
-estimator = make_pipeline(StandardScaler(with_mean=False), 
-                          Ridge(), 
-                          MeanVariance())
+estimator = make_pipeline(StandardScaler(with_mean=False), Ridge(), MeanVariance())
 
-returns_data = load_kf_returns(cache_dir='data')
-ret = returns_data['Monthly']['Average_Value_Weighted_Returns'][:'1999']
+returns_data = load_kf_returns(cache_dir="data")
+ret = returns_data["Monthly"]["Average_Value_Weighted_Returns"][:"1999"]
 
-transform_X = lambda x: x.rolling(12).mean().fillna(0).values
-transform_y = lambda x: x.shift(-1).values
+transform_X = lambda x: x.rolling(12).mean().fillna(0)
+transform_y = lambda x: x.shift(-1)
 features = transform_X(ret)
 target = transform_y(ret)
-bt = Backtester(estimator, ret).train(features, target)
-line(bt.pnl_, cumsum=True, title='Ridge')
+
+pnl_ = Backtester(estimator).train(features, target, ret)
+line(pnl_, cumsum=True, title="Ridge")
 ```
 
 ## Installation
