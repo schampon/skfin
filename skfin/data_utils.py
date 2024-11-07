@@ -31,6 +31,6 @@ def load_dict(input_dir):
         if o.name.endswith(".parquet"):
             k = o.name.replace(".parquet", "")
             data[k] = pd.read_parquet(o)
-        elif o.is_dir:
+        elif o.is_dir():
             data[o.name] = load_dict(o)
     return data
