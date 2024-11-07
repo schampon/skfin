@@ -5,6 +5,7 @@ ipywidgets==8.0.4
 lightgbm==3.3.2
 matplotlib==3.5.2
 numpy==1.23.1
+openai==1.44.1
 openpyxl==3.1.1
 optuna==2.10.1
 pandas==1.4.3
@@ -12,8 +13,9 @@ pyarrow==9.0.0
 rapidfuzz==2.13.7
 scikit-learn==1.1.2
 scipy==1.9.0
-sentence_transformers==2.2.2
+sentence_transformers==3.2.1
 statsmodels==0.13.2
 tqdm==4.64.0
 umap-learn==0.5.3
 yfinance==0.2.12
+tenacity==8.2.3

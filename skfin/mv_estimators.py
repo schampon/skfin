@@ -9,16 +9,22 @@ def compute_batch_holdings(pred, V, A=None, past_h=None, constant_risk=False):
     """
     compute markowitz holdings with return prediction "mu" and covariance matrix "V"
 
-    mu: numpy array (shape N * K)
-    V: numpy array (N * N)
+    Args: 
+        pred: (numpy.ndarray or pandas.Series or pandas.DataFrame): Expected returns, can be of shape (N,) or (N, K).
+        V: (numpy.ndarray): Covariance matrix of shape (N, N).
+        A: (numpy.ndarray, optional): Matrix for linear constraints, default is None
+        past_h (numpy.ndarray, optional): Not used in the current implementation.
+        constant_risk (bool, optional): If True, normalize outputs to maintain constant risk, default is False.
 
+    Returns:
+        numpy.ndarray: Computed holdings.
     """
 
     N, _ = V.shape
-    if isinstance(pred, pd.Series) | isinstance(pred, pd.DataFrame):
+    if isinstance(pred, (pd.Series, pd.DataFrame)):
         pred = pred.values
-    if pred.shape == (N,):
-        pred = pred[:, None]
+    if pred.ndim == 1:
+        pred = pred[:, np.newaxis]
     elif pred.shape[1] == N:
         pred = pred.T
 

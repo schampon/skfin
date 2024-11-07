@@ -5,29 +5,35 @@ from sklearn.multioutput import MultiOutputRegressor
 from sklearn.neural_network import MLPRegressor
 
 
+def add_transform_method(cls):
+    """
+    Decorator to add a 'transform' method to a class that uses the 'predict' method.
+    """
+    def transform(self, X):
+        return self.predict(X)
+        
+    cls.transform = transform
+    return cls
+
+@add_transform_method
 class LinearRegression(LinearRegression):
-    def transform(self, X):
-        return self.predict(X)
+    pass
 
-
+@add_transform_method
 class Ridge(Ridge):
-    def transform(self, X):
-        return self.predict(X)
+    pass
 
-
+@add_transform_method
 class RidgeCV(RidgeCV):
-    def transform(self, X):
-        return self.predict(X)
+    pass
 
-
+@add_transform_method
 class MLPRegressor(MLPRegressor):
-    def transform(self, X):
-        return self.predict(X)
+    pass
 
-
+@add_transform_method
 class MultiOutputRegressor(MultiOutputRegressor):
-    def transform(self, X):
-        return self.predict(X)
+    pass
 
 
 class MultiLGBMRegressor(BaseEstimator):

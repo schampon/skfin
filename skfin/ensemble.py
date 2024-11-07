@@ -11,7 +11,6 @@ from sklearn.model_selection import TimeSeriesSplit
 @dataclass
 class StackingBacktester:
     estimators: dict
-    ret: pd.DataFrame
     max_train_size: int = 36
     test_size: int = 1
     start_date: str = "1945-01-01"
@@ -20,42 +19,41 @@ class StackingBacktester:
     min_periods: int = 60
     final_estimator: BaseEstimator = Mbj()
 
-    def __post_init__(self):
-        self.ret = self.ret[: self.end_date]
-        self.cv = TimeSeriesSplit(
+    def train(self, X, y, ret):
+        cv = TimeSeriesSplit(
             max_train_size=self.max_train_size,
             test_size=self.test_size,
-            n_splits=1
-            + len(self.ret.loc[self.start_date : self.end_date]) // self.test_size,
+            n_splits=1 + len(X.loc[self.start_date : self.end_date]) // self.test_size,
         )
-
-    def train(self, features, target):
         N_estimators = len(self.estimators)
-        cols = self.ret.columns
-        idx = self.ret.index[
-            np.concatenate([test for _, test in self.cv.split(self.ret)])
-        ]
+        cols = X.columns
+        idx = X.index[np.concatenate([test for _, test in cv.split(X)])]
 
         _h = {k: [] for k in list(self.estimators.keys()) + ["ensemble"]}
-        _pnls = {k: [] for k in self.estimators.keys()}
+        _next_pnls = {k: [] for k in self.estimators.keys()}
         _coef = []
-        for i, (train, test) in enumerate(self.cv.split(self.ret)):
+        for i, (train, test) in enumerate(cv.split(X)):
             h_ = {}
-            if i > self.min_periods:
-                pnl_window = np.stack(
-                    [np.array(v[-self.window :]) for k, v in _pnls.items()], axis=1
-                )
-                coef_ = self.final_estimator.fit(pnl_window).coef_
-                _coef += [coef_]
-            else:
-                _coef += [np.zeros(N_estimators)]
+            # each strategy position and next-period pnls 
             for k, m in self.estimators.items():
-                m.fit(features.iloc[train], target.iloc[train])
-                h_[k] = m.predict(features.iloc[test])
+                m.fit(X.iloc[train], y.iloc[train])
+                h_[k] = m.predict(X.iloc[test])
                 _h[k] += [h_[k]]
                 if i + 1 < len(idx):
-                    _pnls[k] += [self.ret.loc[idx[i + 1]].dot(np.squeeze(h_[k]))]
-            if i > self.min_periods:
+                    _next_pnls[k] += [ret.loc[idx[i + 1]].dot(np.squeeze(h_[k]))]
+            # compute coef from strategy pnls   
+            if i <= self.min_periods:
+                _coef += [np.zeros(N_estimators)]
+            else:
+                pnl_window = np.stack(
+                    [np.array(v[-self.window-1 :-1]) for k, v in _next_pnls.items()], axis=1
+                )
+                coef_ = self.final_estimator.fit(pnl_window).coef_
+                _coef += [coef_]                      
+            # ensemble 
+            if i <= self.min_periods:
+                h_ensemble = np.zeros([len(cols), 1])
+            else: 
                 h_ensemble = (
                     np.stack([np.squeeze(v) for v in h_.values()], axis=1)
                     .dot(coef_)
@@ -64,18 +62,16 @@ class StackingBacktester:
                 V_ = m.named_steps["meanvariance"].V_
                 h_ensemble = h_ensemble / np.sqrt(
                     np.diag(h_ensemble.T.dot(V_.dot(h_ensemble)))
-                )
-            else:
-                h_ensemble = np.zeros([len(cols), 1])
+                )                
             _h["ensemble"] += [h_ensemble.T]
-
+            
         self.h_ = {
             k: pd.DataFrame(np.concatenate(_h[k]), index=idx, columns=cols)
             for k in _h.keys()
         }
         self.pnls_ = pd.concat(
             {
-                k: v.shift(1).mul(self.ret).sum(axis=1)[self.start_date :]
+                k: v.shift(1).mul(ret).sum(axis=1)[self.start_date :]
                 for k, v in self.h_.items()
             },
             axis=1,
@@ -83,4 +79,5 @@ class StackingBacktester:
         self.coef_ = pd.DataFrame(
             np.stack(_coef), index=idx, columns=self.estimators.keys()
         )
+        self.cv = cv 
         return self

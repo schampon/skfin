@@ -15,9 +15,13 @@ from tqdm.auto import tqdm
 
 warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
 
+
 from skfin.data_utils import clean_directory_path, load_dict, save_dict
 from skfin.dataset_dates import load_fomc_change_date
 from skfin.dataset_mappings import mapping_10X, symbol_dict
+
+#import ssl
+#ssl._create_default_https_context = ssl._create_unverified_context
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -122,7 +126,7 @@ def load_buffets_data(cache_dir="data", force_reload=False):
     else:
         logger.info("loading from external source")
         path = "https://github.com/slihn/buffetts_alpha_R/archive/master.zip"
-        r = requests.get(path)
+        r = requests.get(path) #, verify=False)
         files = ZipFile(BytesIO(r.content))
 
         df = pd.read_csv(
