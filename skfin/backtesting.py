@@ -37,10 +37,11 @@ class Backtester:
     name: str = None
 
     def compute_holdings(self, X, y, pre_dispatch="2*n_jobs", n_jobs=1):
+        X = X.loc[:self.end_date]
         cv = TimeSeriesSplit(
             max_train_size=self.max_train_size,
             test_size=self.test_size,
-            n_splits=1 + len(X.loc[self.start_date : self.end_date]) // self.test_size,
+            n_splits=1 + len(X.loc[self.start_date : ]) // self.test_size,
         )
         parallel = Parallel(n_jobs=n_jobs, pre_dispatch=pre_dispatch)
         res = parallel(

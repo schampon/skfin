@@ -1,9 +1,12 @@
+import os
 import ssl
 from concurrent.futures import ThreadPoolExecutor
+from functools import partial
 
 import pandas as pd
 from openai import OpenAI
 from tenacity import retry, stop_after_attempt, wait_exponential
+import httpx
 
 ssl._create_default_https_context = ssl._create_unverified_context
 
@@ -53,7 +56,8 @@ def apply_prompt_single_text(
     if api_key is None:
         with open("key", "r") as f:
             api_key = f.read()
-    client = OpenAI(api_key=api_key)
+    client = OpenAI(api_key=api_key, 
+                    http_client=httpx.Client(verify= os.environ.get("REQUESTS_CA_BUNDLE")))
     completion = client.beta.chat.completions.parse(
         model=model,
         messages=messages,
@@ -82,12 +86,6 @@ def apply_prompt_single_text(
     return output
 
 
-from concurrent.futures import ThreadPoolExecutor
-from functools import partial
-
-import pandas as pd
-
-
 def apply_prompt(
     dataframe,
     content_function,
@@ -98,6 +96,7 @@ def apply_prompt(
     max_workers=25,
     sequential=False,
     return_dataframe=True,
+    stacked_dataframe=False, 
     api_key=None,
 ):
     """
@@ -146,6 +145,9 @@ def apply_prompt(
             results = list(executor.map(apply_prompt_single_text_partial, texts))
 
     if return_dataframe:
-        return pd.DataFrame(results, index=dataframe.index)
+        if stacked_dataframe:
+            return pd.concat({dataframe.index[i]: pd.DataFrame(d) for i, d in enumerate(results)})
+        else:
+            return pd.DataFrame(results, index=dataframe.index)
     else:
         return results

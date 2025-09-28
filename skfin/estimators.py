@@ -1,5 +1,5 @@
 from lightgbm.sklearn import LGBMRegressor
-from sklearn.base import BaseEstimator, clone
+from sklearn.base import BaseEstimator
 from sklearn.linear_model import LinearRegression, Ridge, RidgeCV
 from sklearn.multioutput import MultiOutputRegressor
 from sklearn.neural_network import MLPRegressor

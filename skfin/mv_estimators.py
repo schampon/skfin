@@ -4,8 +4,11 @@ from skfin.metrics import sharpe_ratio
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.linear_model import LinearRegression
 
+from dataclasses import dataclass, field
+from typing import Callable, Optional
 
-def compute_batch_holdings(pred, V, A=None, past_h=None, constant_risk=False):
+
+def compute_batch_holdings(pred, V, A=None, risk_target=None):
     """
     compute markowitz holdings with return prediction "mu" and covariance matrix "V"
 
@@ -38,33 +41,87 @@ def compute_batch_holdings(pred, V, A=None, past_h=None, constant_risk=False):
         else:
             M = invV - U.dot(np.linalg.inv(U.T.dot(A)).dot(U.T))
     h = M.dot(pred)
-    if constant_risk:
-        h = h / np.sqrt(np.diag(h.T.dot(V.dot(h))))
+    if risk_target is not None:
+        h = risk_target * h / np.sqrt(np.diag(h.T.dot(V.dot(h))))
     return h.T
 
 
-class MeanVariance(BaseEstimator):
-    def __init__(self, transform_V=None, A=1, constant_risk=True):
-        if transform_V is None:
-            self.transform_V = lambda x: np.cov(x.T)
-        else:
-            self.transform_V = transform_V
-        self.A = A
-        self.constant_risk = constant_risk
 
+@dataclass
+class MeanVariance(BaseEstimator):
+    """
+    A mean-variance optimization estimator that computes portfolio holdings 
+    based on expected returns and the covariance matrix.
+
+    Attributes:
+        transform_V (Callable): Function to transform target variable 'y' into a covariance matrix.
+        A (Optional[np.ndarray]): Constraints matrix for the optimization problem.
+        risk_target (float): Risk target for the portfolio.
+    """
+    transform_V: Callable = field(default=lambda x: np.cov(x.T))
+    A: Optional[np.ndarray] = None
+    risk_target: float = 1.0
+
+    def __post_init__(self):
+        """
+        Post-initialization process to set additional attributes or setup.
+        """
+        self.holdings_kwargs = {'risk_target': self.risk_target}
+    
+    @staticmethod
+    def compute_batch_holdings(pred, V, A, risk_target, **kwargs):
+        """
+        Compute portfolio holdings in a batch manner.
+
+        Parameters:
+            pred (np.ndarray): Predicted returns.
+            V (np.ndarray): Covariance matrix.
+            A (np.ndarray): Constraint matrix.
+            risk_target (float): Target risk level.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            np.ndarray: Portfolio holdings.
+        """
+        return compute_batch_holdings(pred=pred, V=V, A=A, **kwargs)
+    
     def fit(self, X, y=None):
+        """
+        Fit the model by calculating the covariance matrix 'V_' from targets 'y'.
+
+        Parameters:
+            X (np.ndarray): Input feature matrix.
+            y (np.ndarray): Target variable matrix.
+        """
         self.V_ = self.transform_V(y)
 
-    def predict(self, X):
-        if self.A==1:
-            T, N = X.shape
-            A = np.ones(N)
-        else:
-            A = self.A
-        h = compute_batch_holdings(X, self.V_, A, constant_risk=self.constant_risk)
-        return h
+    def predict(self, X, **kwargs):
+        """
+        Predict portfolio holdings based on input features.
 
+        Parameters:
+            X (np.ndarray): Input feature matrix.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            np.ndarray: Predicted portfolio holdings.
+        """
+        A = self.A if self.A is not None else np.ones(X.shape[1])
+        kwargs = {**kwargs, **self.holdings_kwargs}
+        h = self.compute_batch_holdings(pred=X, V=self.V_, A=A, **kwargs)
+        return h
+        
     def score(self, X, y):
+        """
+        Calculate the performance score of the portfolio using Sharpe ratio.
+
+        Parameters:
+            X (np.ndarray): Predicted returns.
+            y (np.ndarray): Actual returns.
+
+        Returns:
+            float: Sharpe ratio of the portfolio.
+        """
         return sharpe_ratio(np.sum(X * y, axis=1))
 
 

@@ -45,7 +45,10 @@ def line(
         df = df.cumsum()
     if sort:
         df = df.loc[:, lambda x: x.iloc[-1].sort_values(ascending=False).index]
-    fig, ax = set_axis(ax=ax, figsize=figsize, title=title)
+    if ax is None:
+        fig, ax = set_axis(ax=ax, figsize=figsize)
+    if title != '': 
+        ax.set_title(title)
     ax.plot(df.index, df.values)
     if legend:
         ax.legend(df.columns, loc=loc, bbox_to_anchor=bbox_to_anchor)

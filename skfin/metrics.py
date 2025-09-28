@@ -13,18 +13,19 @@ def test_day(df):
     return int(len(df) / len(df.asfreq("D"))) == 1
 
 
-def sharpe_ratio(df, num_period_per_year=None):
-    num_period_per_year = None
-    if test_monthly(df):
-        num_period_per_year = 12
-    if test_bday(df):
-        num_period_per_year = 260
-    if test_day(df):
-        num_period_per_year = 365
-    if num_period_per_year is None:
-        return np.nan
-    else:
-        return df.mean() / df.std() * np.sqrt(num_period_per_year)
+def sharpe_ratio(df, num_period_per_year=None, remove_zeros=True):
+    if num_period_per_year is None: 
+        if test_monthly(df):
+            num_period_per_year = 12
+        if test_bday(df):
+            num_period_per_year = 260
+        if test_day(df):
+            num_period_per_year = 365
+        if num_period_per_year is None:
+            return np.nan
+    if remove_zeros: 
+        df = df.replace(0, np.nan)
+    return df.mean() / df.std() * np.sqrt(num_period_per_year)
 
 
 def drawdown(x, return_in_risk_unit=True, window=36, num_period_per_year=12):
