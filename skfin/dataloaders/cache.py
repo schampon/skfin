@@ -8,7 +8,7 @@ import pandas as pd
 from skfin.dataloaders.io_utils import clean_directory_path, load_dict, save_dict
 
 
-logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+logging.basicConfig(stream=sys.stdout, level=logging.CRITICAL)
 logger = logging.getLogger(__name__)
 
 
@@ -65,7 +65,7 @@ class CacheManager:
 
     def save_to_cache(self, data: Any, path: Path) -> None:
         """Saving to cache."""
-        self.logger.info(f"Sauvegarde dans le cache : {path}")
+        self.logger.info(f"Saving to the cache : {path}")
         if isinstance(data, pd.DataFrame):
             if path.suffix == ".parquet":
                 data.to_parquet(path)

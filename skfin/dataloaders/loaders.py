@@ -13,7 +13,7 @@ from skfin.dataloaders.cleaners import DataCleaner
 from skfin.dataloaders.fomc import FomcUtils
 from skfin.dataloaders.constants.mappings import symbol_dict
 
-logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+logging.basicConfig(stream=sys.stdout, level=logging.CRITICAL)
 logger = logging.getLogger(__name__)
 
 
