@@ -1,5 +1,4 @@
 import logging
-import subprocess
 import sys
 from pathlib import Path
 from typing import Dict
@@ -12,6 +11,7 @@ from skfin.dataloaders.web_utils import WebUtils
 from skfin.dataloaders.cleaners import DataCleaner
 from skfin.dataloaders.fomc import FomcUtils
 from skfin.dataloaders.constants.mappings import symbol_dict
+from skfin.dataloaders.io_utils import _download_file_safely
 
 logging.basicConfig(stream=sys.stdout, level=logging.CRITICAL)
 logger = logging.getLogger(__name__)
@@ -179,90 +179,111 @@ class DatasetLoader:
         )
 
     def load_loughran_mcdonald_dictionary(
-        self, force_reload: bool = False
+        self, filename: str = None, force_reload: bool = False
     ) -> pd.DataFrame:
         """
         Load the Loughran-McDonald dictionary.
 
         Args:
+            filename: Custom filename to use
             force_reload: If True, ignore cache and reload data
 
         Returns:
             DataFrame containing the dictionary data
         """
-        filename = Path("Loughran-McDonald_MasterDictionary_1993-2021.csv")
+        if filename is None:
+            filename = "Loughran-McDonald_MasterDictionary_1993-2021.csv"
+        filename = Path(filename)
 
         def loader_func():
             id = "17CmUZM9hGUdGYjCXcjQLyybjTrcjrhik"
             url = f"https://docs.google.com/uc?export=download&confirm=t&id={id}"
-            subprocess.run(
-                f"wget -O '{self.cache_manager.cache_dir / filename}' '{url}'",
-                shell=True,
-                capture_output=True,
+            filepath = self.cache_manager.cache_dir / filename
+
+            _download_file_safely(
+                url=url,
+                filepath=filepath,
+                manual_url="https://sraf.nd.edu/loughran-mcdonald-master-dictionary/",
             )
-            return pd.read_csv(self.cache_manager.cache_dir / filename)
+
+            return pd.read_csv(filepath)
 
         return self.cache_manager.get_cached_dataframe(
             filename=filename, loader_func=loader_func, force_reload=force_reload
         )
 
-    def load_10X_summaries(self, force_reload: bool = False) -> pd.DataFrame:
+    def load_10X_summaries(
+        self, filename: str = None, force_reload: bool = False
+    ) -> pd.DataFrame:
         """
         Load 10-X summaries.
 
         Args:
+            filename: Custom filename to use
             force_reload: If True, ignore cache and reload data
 
         Returns:
             DataFrame containing 10-X summaries
         """
-        filename = Path("Loughran-McDonald_10X_Summaries_1993-2021.csv")
+        if filename is None:
+            filename = "Loughran-McDonald_10X_Summaries_1993-2021.csv"
+        filename = Path(filename)
 
         def loader_func():
             id = "1CUzLRwQSZ4aUTfPB9EkRtZ48gPwbCOHA"
             url = f"https://docs.google.com/uc?export=download&confirm=t&id={id}"
-            subprocess.run(
-                f"wget -O '{self.cache_manager.cache_dir / filename}' '{url}'",
-                shell=True,
-                capture_output=True,
+            filepath = self.cache_manager.cache_dir / filename
+
+            _download_file_safely(
+                url=url,
+                filepath=filepath,
+                manual_url="https://sraf.nd.edu/sec-edgar-data/lm_10x_summaries/",
             )
 
-            return pd.read_csv(self.cache_manager.cache_dir / filename)
+            return pd.read_csv(filepath)
 
         df = self.cache_manager.get_cached_dataframe(
-            filename=filename, loader_func=loader_func, force_reload=force_reload
+            filename=filename,
+            loader_func=loader_func,
+            force_reload=force_reload,
         )
         return df.assign(
             date=lambda x: pd.to_datetime(x.FILING_DATE, format="%Y%m%d")
         ).set_index("date")
 
     def load_ag_features(
-        self, sheet_name: str = "Monthly", force_reload: bool = False
+        self,
+        filename: str = None,
+        sheet_name: str = "Monthly",
+        force_reload: bool = False,
     ) -> pd.DataFrame:
         """
         Load Amit Goyal's characteristics data.
 
         Args:
+            filename: Custom filename to use
             sheet_name: Name of the sheet to load
             force_reload: If True, ignore cache and reload data
 
         Returns:
             DataFrame containing characteristic data
         """
-        filename = Path("Data2024.xlsx")
+        if filename is None:
+            filename = "Data2024.xlsx"
+        filename = Path(filename)
 
         def loader_func():
             id = "10_nkOkJPvq4eZgNl-1ys63PzhbnM3S2y"
             url = f"https://docs.google.com/spreadsheets/d/{id}/export?format=xlsx"
-            subprocess.run(
-                f"wget -O '{self.cache_manager.cache_dir / filename}' '{url}'",
-                shell=True,
-                capture_output=True,
+            filepath = self.cache_manager.cache_dir / filename
+
+            _download_file_safely(
+                url=url,
+                filepath=filepath,
+                manual_url="https://sites.google.com/view/agoyal145/data-library",
             )
 
-            return pd.read_excel(
-                self.cache_manager.cache_dir / filename, sheet_name=sheet_name
-            )
+            return pd.read_excel(filepath, sheet_name=sheet_name)
 
         df = self.cache_manager.get_cached_dataframe(
             filename=filename,
