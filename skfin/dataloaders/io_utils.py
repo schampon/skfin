@@ -1,8 +1,56 @@
 import os
 from pathlib import Path
 from typing import Dict, Union, Any
+import subprocess
 
 import pandas as pd
+
+
+def _download_file_safely(url: str, filepath: Path, manual_url: str) -> None:
+    """
+    Safely downloads a file using a temporary file approach.
+
+    Args:
+        url: Download URL
+        filepath: Final destination path
+        manual_url: URL for manual download in case of failure
+    """
+    import tempfile
+    import shutil
+    import os
+
+    # Create a temporary file for download
+    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+        temp_path = temp_file.name
+
+    try:
+        # Download to temporary location
+        subprocess.run(
+            f"wget -O '{temp_path}' '{url}'",
+            shell=True,
+            capture_output=True,
+        )
+
+        # Check if download was successful
+        temp_file_stat = os.stat(temp_path)
+        if temp_file_stat.st_size <= 0:
+            raise ValueError("Downloaded file has zero size")
+
+        # Move to final location if successful
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        shutil.move(temp_path, filepath)
+
+    except Exception as e:
+        # Clean up temporary file in case of failure
+        if os.path.exists(temp_path):
+            os.unlink(temp_path)
+
+        error_msg = (
+            f"Failed to download file. "
+            f"Please download it manually from: {manual_url}"
+        )
+        raise FileNotFoundError(error_msg) from e
+
 
 
 def clean_directory_path(
