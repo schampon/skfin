@@ -26,4 +26,4 @@ pyarrow==21.0.0
 sentence_transformers==5.1.1
 yfinance==0.2.66
 rapidfuzz==3.13.0
-umap==0.1.1
+umap-learn==0.5.9.post2
