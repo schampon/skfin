@@ -1,3 +1,32 @@
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools>=68.0"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "skfin"
+version = "0.1.0"
+description = "Machine learning for portfolio management and trading"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "pandas",
+    "pyarrow",
+    "scikit-learn",
+    "matplotlib",
+    "joblib",
+]
+
+[project.optional-dependencies]
+nlp = ["sentence-transformers", "beautifulsoup4"]
+llm = ["openai", "tenacity"]
+boost = ["lightgbm"]
+optim = ["cvxpy"]
+dev = ["pytest", "nbformat", "nbconvert", "ipykernel", "ipywidgets"]
+
+[tool.setuptools.packages.find]
+include = ["skfin*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+markers = ["network: requires internet access (deselected by default)"]

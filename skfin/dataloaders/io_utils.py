@@ -1,9 +1,36 @@
 import os
+import sys
+import subprocess
+import pandas as pd
 from pathlib import Path
 from typing import Dict, Union, Any
-import subprocess
+from contextlib import redirect_stdout
 
-import pandas as pd
+
+def _read_excel_quietly(filepath: Union[str, Path], sheet_name: Union[str, int, list, None] = None, **kwargs) -> Union[
+    pd.DataFrame, Dict[str, pd.DataFrame]]:
+    """
+    Read Excel file without printing sheet names to stdout.
+
+    This function suppresses the stdout output that pandas normally produces when
+    reading Excel files with multiple sheets.
+
+    Parameters:
+        filepath: Path to the Excel file
+        sheet_name: Sheet name(s) to read. If None, all sheets are read.
+            - str: Name of the sheet
+            - int: Index of the sheet (0-indexed)
+            - list: List of sheet names/indices
+            - None: All sheets
+        **kwargs: Additional keyword arguments passed to pd.read_excel
+
+    Returns:
+        If sheet_name is None or a list, a dictionary of DataFrames with sheet names as keys.
+        If sheet_name is a string or integer, a single DataFrame.
+    """
+    with open(os.devnull, 'w') as f:
+        with redirect_stdout(f):
+            return pd.read_excel(filepath, sheet_name=sheet_name, **kwargs)
 
 
 def _download_file_safely(url: str, filepath: Path, manual_url: str) -> None:

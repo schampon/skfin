@@ -1,43 +1,78 @@
+"""Visualization helpers for quick data exploration."""
+
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
+
 from skfin.metrics import sharpe_ratio
 
-plt.style.use("seaborn-whitegrid")
 
+def set_axis(
+    ax: plt.Axes | None = None,
+    figsize: tuple = (8, 5),
+    title: str | None = None,
+    fig: plt.Figure | None = None,
+) -> tuple[plt.Figure, plt.Axes]:
+    """Create or reuse a matplotlib figure and axes pair.
 
-def set_axis(ax=None, figsize=(8, 5), title=None, fig=None):
+    Args:
+        ax: Existing axes to reuse. If None, creates a new figure.
+        figsize: Figure size as (width, height) in inches.
+        title: Optional title for the axes.
+        fig: Existing figure to associate with the axes.
+
+    Returns:
+        Tuple of (figure, axes).
+    """
     if ax is None:
         fig, ax = plt.subplots(1, 1, figsize=figsize)
+    else:
+        fig = fig or ax.get_figure()
     if title is not None:
         ax.set_title(title)
     return fig, ax
 
 
 def line(
-    df,
-    sort=True,
-    figsize=(8, 5),
-    ax=None,
-    title="",
-    cumsum=False,
-    loc="center left",
-    bbox_to_anchor=(1, 0.5),
-    legend_sharpe_ratio=None,
-    legend=True,
-    yscale=None,
-    start_date=None,
+    df: pd.DataFrame | pd.Series | dict | list,
+    sort: bool = True,
+    figsize: tuple = (8, 5),
+    ax: plt.Axes | None = None,
+    title: str = "",
+    cumsum: bool = False,
+    loc: str = "center left",
+    bbox_to_anchor: tuple | None = (1, 0.5),
+    legend_sharpe_ratio: bool | None = None,
+    legend: bool = True,
+    yscale: str | None = None,
+    start_date: str | None = None,
 ):
-    df = df.copy()
+    """Plot one or more time series as lines.
+
+    Args:
+        df: Data to plot. Accepts DataFrame, Series, dict, or list of Series.
+        sort: Sort columns by final value (highest on top).
+        figsize: Figure size as (width, height) in inches.
+        ax: Existing axes to plot on.
+        title: Plot title.
+        cumsum: Cumulate the series before plotting.
+        loc: Legend location string.
+        bbox_to_anchor: Legend anchor point.
+        legend_sharpe_ratio: Append Sharpe ratio to legend labels. Auto-enabled with cumsum.
+        legend: Whether to show the legend.
+        yscale: Y-axis scale (e.g. "log").
+        start_date: Trim data before this date.
+    """
+    df = df.copy() if isinstance(df, (pd.DataFrame, pd.Series)) else df
     if loc == "best":
         bbox_to_anchor = None
-    if isinstance(df, dict) | isinstance(df, list):
+    if isinstance(df, (dict, list)):
         df = pd.concat(df, axis=1)
     if isinstance(df, pd.Series):
         df = df.to_frame()
     if start_date is not None:
         df = df[start_date:]
-    if cumsum & (legend_sharpe_ratio is None):
+    if cumsum and legend_sharpe_ratio is None:
         legend_sharpe_ratio = True
     if legend_sharpe_ratio:
         df.columns = [f"{c}: sr={sharpe_ratio(df[c]): 3.2f}" for c in df.columns]
@@ -47,7 +82,9 @@ def line(
         df = df.loc[:, lambda x: x.iloc[-1].sort_values(ascending=False).index]
     if ax is None:
         fig, ax = set_axis(ax=ax, figsize=figsize)
-    if title != '': 
+    ax.set_axisbelow(True)
+    ax.grid(True, linestyle="--", alpha=0.5)
+    if title != "":
         ax.set_title(title)
     ax.plot(df.index, df.values)
     if legend:
@@ -57,57 +94,96 @@ def line(
 
 
 def bar(
-    df,
-    err=None,
-    sort=True,
-    figsize=(8, 5),
-    ax=None,
-    title=None,
-    horizontal=False,
-    baseline=None,
-    rotation=0,
+    df: pd.DataFrame | pd.Series | dict,
+    err: pd.Series | None = None,
+    sort: bool = True,
+    figsize: tuple = (8, 5),
+    ax: plt.Axes | None = None,
+    title: str | None = None,
+    horizontal: bool = False,
+    rotation: int = 0,
 ):
-    if isinstance(df, pd.DataFrame):
-        df = df.squeeze()
+    """Plot a bar chart from a Series, dict, or multi-column DataFrame.
+
+    Args:
+        df: Data to plot. A Series or dict produces single bars. A DataFrame
+            with multiple columns produces grouped bars (one group per index label).
+        err: Error bars (single-series only, same index as df).
+        sort: Sort rows by value (single-series) or by row mean (multi-series).
+        figsize: Figure size as (width, height) in inches.
+        ax: Existing axes to plot on.
+        title: Plot title.
+        horizontal: Draw horizontal bars.
+        rotation: Tick label rotation angle.
+    """
     if isinstance(df, dict):
-        df = pd.Series(df)
+        df = pd.concat(df, axis=1) if any(isinstance(v, pd.Series) for v in df.values()) else pd.Series(df)
+    if isinstance(df, pd.Series):
+        df = df.to_frame()
+
     if sort:
-        df = df.sort_values()
-    if err is not None:
-        err = err.loc[df.index]
+        df = df.loc[df.mean(axis=1).sort_values().index]
+
     labels = df.index
     x = np.arange(len(labels))
+    n_cols = df.shape[1]
+    bar_width = 1 / (n_cols + 1)
+
     fig, ax = set_axis(ax=ax, figsize=figsize, title=title)
+    ax.set_axisbelow(True)
+    ax.grid(True, linestyle="--", alpha=0.5)
+
+    for i in range(n_cols):
+        offset = (i - (n_cols - 1) / 2) * bar_width
+        if horizontal:
+            ax.barh(
+                x + offset, df.iloc[:, i].values,
+                height=bar_width, capsize=5,
+                xerr=err if n_cols == 1 else None,
+            )
+        else:
+            ax.bar(
+                x + offset, df.iloc[:, i].values,
+                width=bar_width, capsize=5,
+                yerr=err if n_cols == 1 else None,
+            )
+
     if horizontal:
-        ax.barh(x, df.values, xerr=err, capsize=5)
         ax.set_yticks(x)
-        ax.set_yticklabels(labels, rotation=0)
-        if baseline in df.index:
-            df_ = df.copy()
-            df_[df.index != baseline] = 0
-            ax.barh(x, df_.values, color="lightgreen")
+        ax.set_yticklabels(labels, rotation=rotation)
     else:
-        ax.bar(x, df.values, yerr=err, capsize=5)
         ax.set_xticks(x)
-        ax.set_xticklabels(labels, rotation=0)
-        if baseline in df.index:
-            df_ = df.copy()
-            df_[df.index != baseline] = 0
-            ax.bar(x, df_.values, color="lightgreen")
+        ax.set_xticklabels(labels, rotation=rotation)
+
+    if n_cols > 1:
+        ax.legend(df.columns)
     ax.set_title(title)
 
 
 def heatmap(
-    df,
-    ax=None,
-    fig=None, 
-    figsize=(8, 5),
-    title=None,
-    vmin=None,
-    vmax=None,
-    vcompute=True,
-    cmap="RdBu",
+    df: pd.DataFrame,
+    ax: plt.Axes | None = None,
+    fig: plt.Figure | None = None,
+    figsize: tuple = (8, 5),
+    title: str | None = None,
+    vmin: float | None = None,
+    vmax: float | None = None,
+    vcompute: bool = True,
+    cmap: str = "RdBu",
 ):
+    """Plot a color-coded matrix (e.g. correlations, exposures).
+
+    Args:
+        df: Matrix to plot. Rows become x-axis, columns become y-axis.
+        ax: Existing axes to plot on.
+        fig: Existing figure to use.
+        figsize: Figure size as (width, height) in inches.
+        title: Plot title.
+        vmin: Minimum value for colormap.
+        vmax: Maximum value for colormap.
+        vcompute: Auto-compute symmetric vmin/vmax from data.
+        cmap: Matplotlib colormap name.
+    """
     labels_x = df.index
     x = np.arange(len(labels_x))
     labels_y = df.columns
@@ -128,18 +204,34 @@ def heatmap(
 
 
 def scatter(
-    df,
-    ax=None,
-    xscale=None,
-    yscale=None,
-    xlabel=None,
-    ylabel=None,
-    xticks=None,
-    yticks=None,
-    figsize=(8, 5),
-    title=None,
+    df: pd.DataFrame | pd.Series,
+    ax: plt.Axes | None = None,
+    xscale: str | None = None,
+    yscale: str | None = None,
+    xlabel: str | None = None,
+    ylabel: str | None = None,
+    xticks: list | None = None,
+    yticks: list | None = None,
+    figsize: tuple = (8, 5),
+    title: str | None = None,
 ):
+    """Plot values against their index as a scatter plot.
+
+    Args:
+        df: Series with values on x-axis and index labels on y-axis.
+        ax: Existing axes to plot on.
+        xscale: X-axis scale (e.g. "log").
+        yscale: Y-axis scale (e.g. "log").
+        xlabel: X-axis label.
+        ylabel: Y-axis label.
+        xticks: Custom x-axis tick positions.
+        yticks: Custom y-axis tick positions.
+        figsize: Figure size as (width, height) in inches.
+        title: Plot title.
+    """
     fig, ax = set_axis(ax=ax, figsize=figsize, title=title)
+    ax.set_axisbelow(True)
+    ax.grid(True, linestyle="--", alpha=0.5)
     ax.scatter(df, df.index, facecolors="none", edgecolors="b", s=50)
     if xlabel is not None:
         ax.set_xlabel(xlabel)

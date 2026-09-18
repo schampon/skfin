@@ -26,7 +26,7 @@ class FomcUtils:
         r = requests.get(calendar_url)
         soup = BeautifulSoup(r.text, "html.parser")
         contents = soup.find_all(
-            "a", href=re.compile("^/newsevents/pressreleases/monetary\d{8}[ax].htm")
+            "a", href=re.compile(r"^/newsevents/pressreleases/monetary\d{8}[ax].htm")
         )
         urls_ = [content.attrs["href"] for content in contents]
 

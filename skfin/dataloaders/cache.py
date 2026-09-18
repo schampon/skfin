@@ -5,10 +5,9 @@ from typing import Any, Union, Callable
 
 import pandas as pd
 
-from skfin.dataloaders.io_utils import clean_directory_path, load_dict, save_dict
+from skfin.dataloaders.io_utils import clean_directory_path, load_dict, save_dict, _read_excel_quietly
 
 
-logging.basicConfig(stream=sys.stdout, level=logging.CRITICAL)
 logger = logging.getLogger(__name__)
 
 
@@ -52,9 +51,9 @@ class CacheManager:
                 return pd.read_csv(full_path)
             elif filename.suffix == ".xlsx":
                 if "sheet_name" in kwargs:
-                    return pd.read_excel(full_path, sheet_name=kwargs["sheet_name"])
+                    return _read_excel_quietly(full_path, sheet_name=kwargs["sheet_name"])
                 else:
-                    return pd.read_excel(full_path)
+                    return _read_excel_quietly(full_path)
             else:
                 return load_dict(full_path)
         else:
