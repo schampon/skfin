@@ -1,7 +1,5 @@
 import logging
-import sys
 from pathlib import Path
-from typing import Dict
 
 import pandas as pd
 from tqdm.auto import tqdm
@@ -11,10 +9,12 @@ from skfin.dataloaders.web_utils import WebUtils
 from skfin.dataloaders.cleaners import DataCleaner
 from skfin.dataloaders.fomc import FomcUtils
 from skfin.dataloaders.constants.mappings import symbol_dict
-from skfin.dataloaders.io_utils import _download_file_safely
+from skfin.dataloaders.io_utils import _read_excel_quietly
 
-logging.basicConfig(stream=sys.stdout, level=logging.CRITICAL)
+
 logger = logging.getLogger(__name__)
+
+GITHUB_DATA_URL = "https://github.com/schampon/skfin/raw/master/data"
 
 
 class DatasetLoader:
@@ -26,16 +26,15 @@ class DatasetLoader:
 
     def load_kf_returns(
         self, filename: str = "12_Industry_Portfolios", force_reload: bool = False
-    ) -> Dict:
-        """
-        Load Ken French return data.
+    ) -> dict:
+        """Load Ken French return data.
 
         Args:
-            filename: Name of the data file to load
-            force_reload: If True, ignore cache and reload data
+            filename: Name of the data file to load.
+            force_reload: If True, ignore cache and reload data.
 
         Returns:
-            Dictionary of return data
+            Dictionary of return data.
         """
         if filename == "12_Industry_Portfolios":
             skiprows, multi_df = 11, True
@@ -73,14 +72,13 @@ class DatasetLoader:
         )
 
     def load_buffets_data(self, force_reload: bool = False) -> pd.DataFrame:
-        """
-        Load Buffett's portfolio data.
+        """Load Buffett's portfolio data.
 
         Args:
-            force_reload: If True, ignore cache and reload data
+            force_reload: If True, ignore cache and reload data.
 
         Returns:
-            DataFrame containing Buffett's portfolio data
+            DataFrame containing Buffett's portfolio data.
         """
 
         def loader_func():
@@ -100,24 +98,26 @@ class DatasetLoader:
         )
 
     def load_sklearn_stock_returns(self, force_reload: bool = False) -> pd.DataFrame:
-        """
-        Load stock returns data from scikit-learn.
+        """Load stock returns data from scikit-learn.
 
         Args:
-            force_reload: If True, ignore cache and reload data
+            force_reload: If True, ignore cache and reload data.
 
         Returns:
-            DataFrame containing stock returns
+            DataFrame containing stock returns.
         """
 
         def loader_func():
+            from io import StringIO
+
             url = "https://raw.githubusercontent.com/scikit-learn/examples-data/master/financial-data"
             df = (
                 pd.concat(
                     {
-                        c: pd.read_csv(f"{url}/{c}.csv", index_col=0, parse_dates=True)[
-                            "close"
-                        ].diff()
+                        c: pd.read_csv(
+                            StringIO(WebUtils.get_response(f"{url}/{c}.csv").text),
+                            index_col=0, parse_dates=True,
+                        )["close"].diff()
                         for c in symbol_dict.keys()
                     },
                     axis=1,
@@ -140,17 +140,16 @@ class DatasetLoader:
         progress_bar: bool = False,
         from_year: int = 1999,
     ) -> pd.DataFrame:
-        """
-        Load FOMC statements.
+        """Load FOMC statements.
 
         Args:
-            add_url: If True, adds URLs to the output
-            force_reload: If True, ignore cache and reload data
-            progress_bar: If True, displays a progress bar during loading
-            from_year: Year from which to load data
+            add_url: If True, adds URLs to the output.
+            force_reload: If True, ignore cache and reload data.
+            progress_bar: If True, displays a progress bar during loading.
+            from_year: Year from which to load data.
 
         Returns:
-            DataFrame containing FOMC statements
+            DataFrame containing FOMC statements.
         """
 
         def loader_func():
@@ -179,68 +178,52 @@ class DatasetLoader:
         )
 
     def load_loughran_mcdonald_dictionary(
-        self, filename: str = None, force_reload: bool = False
+            self, filename: str | None = None, force_reload: bool = False
     ) -> pd.DataFrame:
-        """
-        Load the Loughran-McDonald dictionary.
+        """Load the Loughran-McDonald dictionary.
 
         Args:
-            filename: Custom filename to use
-            force_reload: If True, ignore cache and reload data
+            filename: Custom filename to use.
+            force_reload: If True, ignore cache and reload data.
 
         Returns:
-            DataFrame containing the dictionary data
+            DataFrame containing the dictionary data.
         """
         if filename is None:
             filename = "Loughran-McDonald_MasterDictionary_1993-2021.csv"
         filename = Path(filename)
 
         def loader_func():
-            id = "17CmUZM9hGUdGYjCXcjQLyybjTrcjrhik"
-            url = f"https://docs.google.com/uc?export=download&confirm=t&id={id}"
-            filepath = self.cache_manager.cache_dir / filename
+            from io import StringIO
 
-            _download_file_safely(
-                url=url,
-                filepath=filepath,
-                manual_url="https://sraf.nd.edu/loughran-mcdonald-master-dictionary/",
-            )
-
-            return pd.read_csv(filepath)
+            url = f"{GITHUB_DATA_URL}/{filename}"
+            response = WebUtils.get_response(url)
+            return pd.read_csv(StringIO(response.text))
 
         return self.cache_manager.get_cached_dataframe(
             filename=filename, loader_func=loader_func, force_reload=force_reload
         )
 
-    def load_10X_summaries(
-        self, filename: str = None, force_reload: bool = False
-    ) -> pd.DataFrame:
-        """
-        Load 10-X summaries.
+    def load_10X_summaries(self, filename: str | None = None, force_reload: bool = False) -> pd.DataFrame:
+        """Load 10-X summaries.
 
         Args:
-            filename: Custom filename to use
-            force_reload: If True, ignore cache and reload data
+            filename: Custom filename to use.
+            force_reload: If True, ignore cache and reload data.
 
         Returns:
-            DataFrame containing 10-X summaries
+            DataFrame containing 10-X summaries.
         """
         if filename is None:
             filename = "Loughran-McDonald_10X_Summaries_1993-2021.csv"
         filename = Path(filename)
 
         def loader_func():
-            id = "1CUzLRwQSZ4aUTfPB9EkRtZ48gPwbCOHA"
-            url = f"https://docs.google.com/uc?export=download&confirm=t&id={id}"
-            filepath = self.cache_manager.cache_dir / filename
+            from io import StringIO
 
-            _download_file_safely(
-                url=url,
-                filepath=filepath,
-                manual_url="https://sraf.nd.edu/sec-edgar-data/lm_10x_summaries/",
-            )
-
-            return pd.read_csv(filepath)
+            url = f"{GITHUB_DATA_URL}/{filename}"
+            response = WebUtils.get_response(url)
+            return pd.read_csv(StringIO(response.text))
 
         df = self.cache_manager.get_cached_dataframe(
             filename=filename,
@@ -252,38 +235,28 @@ class DatasetLoader:
         ).set_index("date")
 
     def load_ag_features(
-        self,
-        filename: str = None,
-        sheet_name: str = "Monthly",
-        force_reload: bool = False,
+            self, filename: str | None = None, sheet_name: str = "Monthly", force_reload: bool = False
     ) -> pd.DataFrame:
-        """
-        Load Amit Goyal's characteristics data.
+        """Load Amit Goyal's characteristics data.
 
         Args:
-            filename: Custom filename to use
-            sheet_name: Name of the sheet to load
-            force_reload: If True, ignore cache and reload data
+            filename: Custom filename to use.
+            sheet_name: Name of the sheet to load.
+            force_reload: If True, ignore cache and reload data.
 
         Returns:
-            DataFrame containing characteristic data
+            DataFrame containing characteristic data.
         """
         if filename is None:
             filename = "Data2024.xlsx"
         filename = Path(filename)
 
         def loader_func():
-            id = "10_nkOkJPvq4eZgNl-1ys63PzhbnM3S2y"
-            url = f"https://docs.google.com/spreadsheets/d/{id}/export?format=xlsx"
-            filepath = self.cache_manager.cache_dir / filename
+            from io import BytesIO
 
-            _download_file_safely(
-                url=url,
-                filepath=filepath,
-                manual_url="https://sites.google.com/view/agoyal145/data-library",
-            )
-
-            return pd.read_excel(filepath, sheet_name=sheet_name)
+            url = f"{GITHUB_DATA_URL}/{filename}"
+            response = WebUtils.get_response(url)
+            return _read_excel_quietly(BytesIO(response.content), sheet_name=sheet_name)
 
         df = self.cache_manager.get_cached_dataframe(
             filename=filename,
@@ -294,3 +267,17 @@ class DatasetLoader:
         return df.assign(
             date=lambda x: pd.to_datetime(x.yyyymm, format="%Y%m")
         ).set_index("date")
+
+    def load_yf_returns(
+            self,
+            tickers: list,
+            start: str = "2010-01-01",
+            end: str | None = None,
+            force_reload: bool = False,
+    ) -> dict[str, pd.DataFrame]:
+        """Load price, dividend, and total returns from Yahoo Finance."""
+        from skfin.dataloaders.yf_loader import load_yf_returns
+
+        return load_yf_returns(
+            tickers, start, end, force_reload, cache_dir=str(self.cache_manager.cache_dir)
+        )
