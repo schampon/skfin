@@ -1,6 +1,6 @@
-conda create python=3.9 --name  skfin -c https://conda.anaconda.org/conda-forge/ -y
-conda activate skfin
+#!/bin/bash
+set -e
 
-pip install -r requirements.txt
-pip install -e . 
-python -m ipykernel install --user --name skfin --display-name "Python (skfin)"
+mamba env create -f environment.yml
+mamba run -n skfin_2026 pip install -e .
+mamba run -n skfin_2026 python -m ipykernel install --user --name skfin_2026 --display-name "Python (skfin)"

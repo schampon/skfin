@@ -3,12 +3,12 @@
 import nbformat
 import pytest
 
-from tests.conftest import SKFIN2_NBS_DIR
+from tests.conftest import SKFIN_NBS_DIR
 
 
 def _discover_notebooks():
     return sorted(
-        p for p in SKFIN2_NBS_DIR.glob("*.ipynb")
+        p for p in SKFIN_NBS_DIR.glob("*.ipynb")
         if p.name != "Untitled.ipynb" and ".ipynb_checkpoints" not in str(p)
     )
 

@@ -1,0 +1,36 @@
+name: skfin_2026
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - libstdcxx-ng>=12
+  - numpy<2
+  - pandas
+  - pyarrow
+  - scikit-learn
+  - matplotlib-base
+  - joblib
+  - requests
+  - beautifulsoup4
+  - tqdm
+  - openpyxl
+  - statsmodels
+  - scipy
+  - pytest
+  - nbformat
+  - nbconvert
+  - ipykernel
+  - jupyterlab
+  - lightgbm
+  - cvxpy<1.6
+  - pip
+  - pip:
+      - --extra-index-url https://download.pytorch.org/whl/cu124
+      - torch
+      - sentence-transformers
+      - fastparquet
+      - ipywidgets
+      - rapidfuzz
+      - yfinance
+      - openai
+      - tenacity

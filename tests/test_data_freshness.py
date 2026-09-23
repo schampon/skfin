@@ -12,7 +12,7 @@ import pytest
 
 from skfin.dataloaders import DatasetLoader
 
-CACHE_DIR = Path.home() / "dev" / "projects" / "skfin2" / "nbs" / "data"
+CACHE_DIR = Path(__file__).resolve().parent.parent / "nbs" / "data"
 
 pytestmark = pytest.mark.network
 

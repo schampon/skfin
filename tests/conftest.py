@@ -2,8 +2,8 @@ from pathlib import Path
 
 import pytest
 
-SKFIN2_ROOT = Path.home() / "dev" / "projects" / "skfin2"
-SKFIN2_NBS_DIR = SKFIN2_ROOT / "nbs"
+SKFIN_ROOT = Path(__file__).resolve().parent.parent
+SKFIN_NBS_DIR = SKFIN_ROOT / "nbs"
 
 
 def pytest_addoption(parser):
