@@ -5,3 +5,5 @@ __pycache__/
 .pytest_cache/
 .idea/
 nbs/cache/
+CONSTITUTION.md
+STANDARDS.md
